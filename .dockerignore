@@ -1,0 +1,17 @@
+# If you want the code version in the csv you need to remove .git
+.git
+.venv
+.env
+.mypy_cache
+.pytest_cache
+.ruff_cache
+__pycache__
+graphify-out
+agents-utils
+experiments
+Referencias
+.claude
+.codex
+.agents
+src/Experiments/Results
+
