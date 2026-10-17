@@ -96,12 +96,7 @@ class CMIknn:
     # std-relative scale can be coarser than genuine near-ties that
     # nonlinear transforms can produce (found empirically: two values 3e-7
     # apart in a cubic/tanh-transformed column, well inside a 1e-6*std-scale
-    # noise band on typical data) -- the noise then decides a real ordering
-    # instead of only breaking ties, making the tie-break itself a source of
-    # disagreement against any other implementation that tie-breaks
-    # independently (e.g. tigramite, see
-    # experiments/verification/verify_cmiknn.py). ULP-scaled noise can only
-    # ever flip values already equal to within floating-point precision.
+    # noise band on typical data)
     def _rank_transform(self, data: NDArray[np.float64]) -> NDArray[np.float64]:
         if self.tie_break_ulps is None:
             noise_scale = 1e-6 * data.std(axis=0, keepdims=True)
