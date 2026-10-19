@@ -6,6 +6,13 @@ reference implementations, and compared in three experiments: recovering the fou
 causal structures, recovering whole graphs with the PC algorithm, and falsifying reference graphs
 on real data.
 
+The benchmark starts from two open problems raised by Averin, Moysiadis & Katakis,
+"Conditional Independence Tests for Constraint-Based Causal Discovery: A Survey" (TMLR, 2026,
+Section 10): most CI tests are designed for only continuous or only categorical variables, and the
+guidelines for choosing a test have not been validated empirically. This work provides a first
+empirical validation of those guidelines, by data type, generating model, conditioning-set size and
+sample size, and checks that they carry over to the graph estimated by PC.
+
 Code of my Bachelor's thesis (TFG) for the Double Degree in Computer Science and Mathematics at the
 University of Granada.
 
@@ -71,7 +78,7 @@ PC-stable is run with each CI test on graphs with the topology of a random Erdő
 heteroscedastic, nonlinear), with mixed variable types and model families, 500 or 1000 samples and
 50 repetitions: **900 datasets**. The estimated CPDAG is stored next to the true graph.
 
-Mean adjacency F1 (skeleton of the estimated CPDAG against the skeleton of the true DAG):
+Mean skeleton F1 (adjacencies of the estimated CPDAG against those of the true DAG):
 
 | CI test | Baseline | Heteroscedastic | Nonlinear |
 |---|---:|---:|---:|
