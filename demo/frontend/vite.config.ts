@@ -5,5 +5,5 @@ import { defineConfig } from "vite";
 export default defineConfig({
     plugins: [react()],
     // Listen on all interfaces so the demo is reachable from the local network IP.
-    server: { host: true },
+    server: { host: true, proxy: { "/api": "http://localhost:8000" } },
 });
