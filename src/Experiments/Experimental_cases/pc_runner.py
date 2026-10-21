@@ -6,8 +6,18 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from causallearn.graph.AdjacencyConfusion import AdjacencyConfusion
+from causallearn.graph.ArrowConfusion import ArrowConfusion
+from causallearn.graph.Dag import Dag
+from causallearn.graph.Edge import Edge
+from causallearn.graph.Endpoint import Endpoint
+from causallearn.graph.GeneralGraph import GeneralGraph
+from causallearn.graph.GraphNode import GraphNode
+from causallearn.graph.Node import Node
+from causallearn.graph.SHD import SHD
 from causallearn.search.ConstraintBased.PC import pc
 from causallearn.utils.cit import CIT_Base, register_ci_test
+from causallearn.utils.DAG2CPDAG import dag2cpdag
 from numpy.typing import NDArray
 
 from src.CI_tests.common import CIResult
@@ -95,6 +105,80 @@ def graph_to_text(matrix: NDArray[np.int_], names: list[str]) -> str:
             elif marks == (1, 1):
                 edges.append(f"{names[i]}<->{names[j]}")
     return ";".join(edges)
+
+
+_ENDPOINTS = {
+    "->": (Endpoint.TAIL, Endpoint.ARROW),
+    "--": (Endpoint.TAIL, Endpoint.TAIL),
+    "<->": (Endpoint.ARROW, Endpoint.ARROW),
+}
+
+
+def _parse_edge(edge: str) -> tuple[str, str, str]:
+    for mark in ("<->", "->", "--"):  # "<->" first: it contains "->"
+        if mark in edge:
+            a, b = edge.split(mark)
+            return a, mark, b
+    raise ValueError(f"not an edge: {edge!r}")
+
+
+def _f1(tp: int, fp: int, fn: int) -> float | None:
+    return 2 * tp / (2 * tp + fp + fn) if tp + fp + fn else None
+
+
+def cpdag_metrics(
+    names: list[str], true_dag: list[str], estimated: list[str]
+) -> dict[str, float | None]:
+    """Compare an estimated CPDAG with the CPDAG of the true DAG.
+
+    PC can only recover the Markov equivalence class, so the estimate is compared with the
+    CPDAG of the true DAG and not with the DAG itself. The orientation is scored only on the
+    edges present in both graphs (the "CE" counts of causal-learn's ``ArrowConfusion``), so
+    that its errors are not mixed with those of the skeleton.
+
+    Parameters
+    ----------
+    names : list of str
+        Name of each variable.
+
+    true_dag : list of str
+        Edges of the true DAG, as ``a->b``.
+
+    estimated : list of str
+        Edges of the estimated CPDAG, in the format of ``graph_to_text``.
+
+    Returns
+    -------
+    metrics : dict
+        ``shd``: structural Hamming distance between the two CPDAGs. ``skeleton_f1``: F1 of
+        the adjacencies. ``orientation_f1``: F1 of the arrowheads. An F1 is ``None`` when
+        neither graph has an element to score.
+    """
+    nodes: list[Node] = [GraphNode(name) for name in names]
+    by_name = {node.get_name(): node for node in nodes}
+    dag = Dag(nodes)
+    for edge in true_dag:
+        a, _, b = _parse_edge(edge)
+        dag.add_directed_edge(by_name[a], by_name[b])
+    truth = dag2cpdag(dag)
+    by_name = {node.get_name(): node for node in truth.get_nodes()}
+    estimate = GeneralGraph(truth.get_nodes())
+    for edge in estimated:
+        a, mark, b = _parse_edge(edge)
+        estimate.add_edge(Edge(by_name[a], by_name[b], *_ENDPOINTS[mark]))
+    adjacencies = AdjacencyConfusion(truth, estimate)
+    arrows = ArrowConfusion(truth, estimate)
+    return {
+        "shd": int(SHD(truth, estimate).get_shd()),
+        "skeleton_f1": _f1(
+            adjacencies.get_adj_tp(), adjacencies.get_adj_fp(), adjacencies.get_adj_fn()
+        ),
+        "orientation_f1": _f1(
+            int(arrows.get_arrows_tp_ce()),
+            int(arrows.get_arrows_fp_ce()),
+            int(arrows.get_arrows_fn_ce()),
+        ),
+    }
 
 
 def run_pc(
