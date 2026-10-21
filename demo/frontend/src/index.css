@@ -1,0 +1,75 @@
+:root {
+    --page-top: #bcd4f2;
+    --page-bottom: #ffffff;
+    --panel-bg: #f4f5f7;
+    --panel-border: #d9dde3;
+    --text: #1f2933;
+    --text-muted: #5b6672;
+    font-family:
+        system-ui,
+        -apple-system,
+        "Segoe UI",
+        Roboto,
+        sans-serif;
+    color: var(--text);
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    /* Fades from blue to white over the first screen, then stays white. */
+    background: linear-gradient(var(--page-top), var(--page-bottom) 600px)
+        var(--page-bottom);
+}
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
+}
+
+h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 24px;
+}
+
+.graph-panel {
+    margin: 0;
+    padding: 16px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.06);
+}
+
+.graph-panel figcaption {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.graph-panel svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.node {
+    fill: white;
+    stroke: #444444;
+    stroke-width: 0.5;
+}
+
+.node-name {
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-size: 12px;
+}
+
+.node-initial {
+    text-anchor: end;
+    font-size: 8px;
+    font-weight: bold;
+}
