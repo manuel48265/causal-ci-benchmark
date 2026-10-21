@@ -126,6 +126,31 @@ def _f1(tp: int, fp: int, fn: int) -> float | None:
     return 2 * tp / (2 * tp + fp + fn) if tp + fp + fn else None
 
 
+def true_cpdag(names: list[str], true_dag: list[str]) -> GeneralGraph:
+    """Build the CPDAG of a DAG: the edges every DAG of its Markov equivalence class shares.
+
+    Parameters
+    ----------
+    names : list of str
+        Name of each variable.
+
+    true_dag : list of str
+        Edges of the DAG, as ``a->b``.
+
+    Returns
+    -------
+    cpdag : GeneralGraph
+        Its nodes are in the order of ``names``.
+    """
+    nodes: list[Node] = [GraphNode(name) for name in names]
+    by_name = {node.get_name(): node for node in nodes}
+    dag = Dag(nodes)
+    for edge in true_dag:
+        a, _, b = _parse_edge(edge)
+        dag.add_directed_edge(by_name[a], by_name[b])
+    return dag2cpdag(dag)
+
+
 def cpdag_metrics(
     names: list[str], true_dag: list[str], estimated: list[str]
 ) -> dict[str, float | None]:
@@ -154,13 +179,7 @@ def cpdag_metrics(
         the adjacencies. ``orientation_f1``: F1 of the arrowheads. An F1 is ``None`` when
         neither graph has an element to score.
     """
-    nodes: list[Node] = [GraphNode(name) for name in names]
-    by_name = {node.get_name(): node for node in nodes}
-    dag = Dag(nodes)
-    for edge in true_dag:
-        a, _, b = _parse_edge(edge)
-        dag.add_directed_edge(by_name[a], by_name[b])
-    truth = dag2cpdag(dag)
+    truth = true_cpdag(names, true_dag)
     by_name = {node.get_name(): node for node in truth.get_nodes()}
     estimate = GeneralGraph(truth.get_nodes())
     for edge in estimated:
