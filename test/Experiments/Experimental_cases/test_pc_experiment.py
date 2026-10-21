@@ -6,7 +6,7 @@ import pytest
 
 from src.CI_tests.Fisher_Z.fisher_z import fisher_z_test
 from src.Experiments.Experimental_cases import run_pc_experiment
-from src.Experiments.Experimental_cases.pc_runner import graph_to_text, run_pc
+from src.Experiments.Experimental_cases.pc_runner import cpdag_metrics, graph_to_text, run_pc
 from src.Experiments.Experimental_cases.run_pc_experiment import (
     SCENARIOS,
     PCCase,
@@ -34,6 +34,24 @@ def test_run_pc_recovers_a_collider() -> None:
     assert run.n_ci_calls > 0
     sizes = {int(k): int(v) for k, v in (p.split(":") for p in run.cond_size_counts.split(";"))}
     assert sum(sizes.values()) == run.n_ci_calls
+
+
+def test_cpdag_metrics_compares_with_the_cpdag_of_the_true_dag() -> None:
+    names = ["a", "b", "c"]
+    collider = ["a->c", "b->c"]
+    assert cpdag_metrics(names, collider, collider) == {
+        "shd": 0,
+        "skeleton_f1": 1.0,
+        "orientation_f1": 1.0,
+    }
+    # a chain is only identified up to its equivalence class: its CPDAG has no arrows
+    chain = cpdag_metrics(names, ["a->b", "b->c"], ["a--b", "b--c"])
+    assert chain == {"shd": 0, "skeleton_f1": 1.0, "orientation_f1": None}
+    # one of the two adjacencies, without its arrowhead
+    partial = cpdag_metrics(names, collider, ["a--c"])
+    assert partial["skeleton_f1"] == pytest.approx(2 / 3)
+    assert partial["orientation_f1"] == 0.0
+    assert partial["shd"] == 2
 
 
 @pytest.mark.parametrize("n_nodes", [15, 8, 11])

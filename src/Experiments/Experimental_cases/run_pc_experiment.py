@@ -192,30 +192,86 @@ def _topology(name: str, rng: np.random.Generator) -> list[list[int]]:
     return load_bif_topology(BNLEARN_NETWORKS[name])
 
 
+def draw_types(rng: np.random.Generator, n_nodes: int) -> list[VariableType]:
+    """Draw the type of each variable independently with the shares of ``TYPE_PROBABILITIES``.
+
+    Parameters
+    ----------
+    rng : Generator
+        Source of randomness.
+
+    n_nodes : int
+        Number of variables.
+
+    Returns
+    -------
+    types : list of VariableType
+        Type of each node.
+    """
+    kinds = list(TYPE_PROBABILITIES)
+    draws = rng.choice(len(kinds), size=n_nodes, p=list(TYPE_PROBABILITIES.values()))
+    return [kinds[int(k)] for k in draws]
+
+
+def assemble_nested_dataset(
+    seed: int,
+    topology: list[list[int]],
+    types: list[VariableType],
+    rules: list[str],
+    n_samples: tuple[int, ...] = N_SAMPLES,
+) -> tuple[GeneratedDataset, int] | None:
+    """Generate a dataset whose first rows give every sample size, again if a column is constant.
+
+    ``max(n_samples)`` rows are generated, so the dataset of each size is the first rows of
+    it. A dataset is accepted only if none of these nested subsets has a constant column;
+    otherwise it is generated again with the next seed, up to ``MAX_ATTEMPTS`` times.
+
+    Parameters
+    ----------
+    seed : int
+        Seed of the data; attempt ``k`` uses ``seed + k``, starting at ``k = 1``.
+
+    topology : list of list of int
+        Parents of each variable, as indices of variables that come earlier in the list.
+
+    types : list of VariableType
+        Type of each variable.
+
+    rules : list of str
+        Model family of each variable, a key of ``RULES``.
+
+    n_samples : tuple of int, optional (default: N_SAMPLES)
+        Sample sizes that must have no constant column.
+
+    Returns
+    -------
+    generated : tuple of (GeneratedDataset, int), or None
+        The dataset and the number of the attempt that produced it, or ``None`` if every
+        attempt had a constant column.
+    """
+    for attempt in range(1, MAX_ATTEMPTS + 1):
+        rng = np.random.default_rng(seed + attempt)
+        dataset = assemble_dataset(
+            rng, topology, types, [RULES[rule] for rule in rules], max(n_samples)
+        )
+        if not any(has_constant_column(dataset.data.iloc[:n]) for n in n_samples):
+            return dataset, attempt
+    return None
+
+
 def _generate(
     case: PCCase,
 ) -> tuple[GeneratedDataset, list[list[int]], list[VariableType], list[str], int] | None:
-    """Generate the dataset with the largest sample size, again if a column is constant.
-
-    A dataset is accepted only if none of its nested subsets has a constant column.
-    """
+    """Generate the graph, the types, the models and the data of a case."""
     graph_rng = np.random.default_rng(case.graph_seed)
     topology = _topology(case.topology, graph_rng)
-    types = [
-        list(TYPE_PROBABILITIES)[int(k)]
-        for k in graph_rng.choice(
-            len(TYPE_PROBABILITIES), size=len(topology), p=list(TYPE_PROBABILITIES.values())
-        )
-    ]
+    types = draw_types(graph_rng, len(topology))
     rules = assign_rules(np.random.default_rng(case.seed), len(topology), SCENARIOS[case.scenario])
-    for attempt in range(1, MAX_ATTEMPTS + 1):
-        rng = np.random.default_rng(case.seed + attempt)
-        dataset = assemble_dataset(
-            rng, topology, types, [RULES[rule] for rule in rules], max(N_SAMPLES)
-        )
-        if not any(has_constant_column(dataset.data.iloc[:n]) for n in N_SAMPLES):
-            return dataset, topology, types, rules, attempt
-    return None
+    generated = assemble_nested_dataset(case.seed, topology, types, rules)
+    if generated is None:
+        return None
+    dataset, attempt = generated
+    return dataset, topology, types, rules, attempt
 
 
 def _roles_text(dataset: GeneratedDataset) -> str:
