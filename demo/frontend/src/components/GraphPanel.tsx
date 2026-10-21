@@ -1,5 +1,5 @@
-import { NODE_SIZE, type Layout } from "../layout";
-import { TYPE_INITIAL } from "../palette";
+import { NODE_SIZE, type Layout, type Point } from "../layout";
+import { KIND_DASH, TYPE_INITIAL } from "../palette";
 import type { DagEdge, GraphNode } from "../types";
 
 const RADIUS = NODE_SIZE / 2;
@@ -16,6 +16,7 @@ interface GraphPanelProps {
  *
  * Continuous variables are drawn as circles and categorical ones as squares labelled
  * with the initial of their type, so the kind of variable can be read without a legend.
+ * The dash pattern of each edge shows the kind of relation.
  *
  * @param title - Heading shown above the drawing.
  * @param nodes - Nodes of the case.
@@ -50,26 +51,21 @@ export function GraphPanel({ title, nodes, edges, layout }: GraphPanelProps) {
                     </marker>
                 </defs>
 
-                {edges.map((edge) => {
-                    const [start, end] = trimToBorders(
-                        at(edge.source),
-                        at(edge.target),
-                        isSquare(edge.source),
-                        isSquare(edge.target),
-                    );
-                    return (
-                        <line
-                            key={`${edge.source}-${edge.target}`}
-                            x1={start.x}
-                            y1={start.y}
-                            x2={end.x}
-                            y2={end.y}
-                            stroke="#444444"
-                            strokeWidth={1.0}
-                            markerEnd="url(#arrow)"
-                        />
-                    );
-                })}
+                {edges.map((edge) => (
+                    <path
+                        key={`${edge.source}-${edge.target}`}
+                        d={edgePath(
+                            edgePoints(layout, edge.source, edge.target),
+                            isSquare(edge.source),
+                            isSquare(edge.target),
+                        )}
+                        fill="none"
+                        stroke="#444444"
+                        strokeWidth={1.0}
+                        strokeDasharray={KIND_DASH[edge.kind]}
+                        markerEnd="url(#arrow)"
+                    />
+                ))}
 
                 {nodes.map((node) => {
                     const { x, y } = at(node.name);
@@ -104,26 +100,38 @@ export function GraphPanel({ title, nodes, edges, layout }: GraphPanelProps) {
     );
 }
 
-type Point = { x: number; y: number };
+// Centres of both nodes; the layout keeps edges straight.
+function edgePoints(layout: Layout, source: string, target: string): Point[] {
+    return [layout.positions.get(source)!, layout.positions.get(target)!];
+}
 
-// Move both ends of an edge from the node centres to their borders, so the arrowhead
-// stays visible instead of being hidden under the target node. A square's border is
-// farther than the radius off the axes, up to RADIUS * sqrt(2) at the corners.
-function trimToBorders(
-    from: Point,
-    to: Point,
-    fromIsSquare: boolean,
-    toIsSquare: boolean,
-): [Point, Point] {
-    const length = Math.hypot(to.x - from.x, to.y - from.y);
-    const ux = (to.x - from.x) / length;
-    const uy = (to.y - from.y) / length;
-    const toBorder = (isSquare: boolean) =>
-        isSquare ? RADIUS / Math.max(Math.abs(ux), Math.abs(uy)) : RADIUS;
-    const start = toBorder(fromIsSquare);
-    const end = toBorder(toIsSquare);
-    return [
-        { x: from.x + ux * start, y: from.y + uy * start },
-        { x: to.x - ux * end, y: to.y - uy * end },
+// SVG path through the points, with both ends moved from the node centres to their
+// borders so the arrowhead stays visible instead of being hidden under the target node.
+function edgePath(
+    points: Point[],
+    sourceIsSquare: boolean,
+    targetIsSquare: boolean,
+): string {
+    const last = points.length - 1;
+    const trimmed = [
+        towardBorder(points[0], points[1], sourceIsSquare),
+        ...points.slice(1, last),
+        towardBorder(points[last], points[last - 1], targetIsSquare),
     ];
+    return trimmed
+        .map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`)
+        .join(" ");
+}
+
+// Point where the segment from a node centre toward another point leaves the node. A
+// square's border is farther than the radius off the axes, up to RADIUS * sqrt(2) at
+// the corners.
+function towardBorder(centre: Point, toward: Point, isSquare: boolean): Point {
+    const length = Math.hypot(toward.x - centre.x, toward.y - centre.y);
+    const ux = (toward.x - centre.x) / length;
+    const uy = (toward.y - centre.y) / length;
+    const distance = isSquare
+        ? RADIUS / Math.max(Math.abs(ux), Math.abs(uy))
+        : RADIUS;
+    return { x: centre.x + ux * distance, y: centre.y + uy * distance };
 }
