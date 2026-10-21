@@ -26,12 +26,80 @@ main {
     max-width: 1200px;
     margin: 0 auto;
     padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    margin: 0 0 24px;
+    margin: 0;
+    text-align: center;
+}
+
+.parameter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px 24px;
+    padding: 16px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+}
+
+.parameter-bar label,
+.parameter-bar .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.stepper {
+    display: flex;
+    gap: 4px;
+}
+
+.stepper output {
+    width: 64px;
+    padding: 6px 8px;
+    text-align: center;
+    font-weight: 400;
+    color: var(--text);
+    background: white;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+}
+
+.stepper button {
+    width: 34px;
+    font: inherit;
+    font-size: 1.1rem;
+    color: var(--text);
+    background: white;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.stepper button:disabled {
+    color: var(--panel-border);
+    cursor: default;
+}
+
+.parameter-bar select {
+    min-width: 160px;
+    padding: 6px 8px;
+    font: inherit;
+    font-weight: 400;
+    color: var(--text);
+    background: white;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
 }
 
 .graph-panel {
@@ -53,7 +121,9 @@ h1 {
 .graph-panel svg {
     display: block;
     width: 100%;
-    height: auto;
+    /* Same box for every graph; the drawing is scaled to fit and centred inside it. */
+    aspect-ratio: 1 / 1;
+    max-height: 70vh;
 }
 
 .node {
@@ -65,7 +135,7 @@ h1 {
 .node-name {
     text-anchor: middle;
     dominant-baseline: central;
-    font-size: 12px;
+    font-size: 10px;
 }
 
 .node-initial {

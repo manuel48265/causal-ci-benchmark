@@ -3,30 +3,53 @@ import { loadPrecomputed } from "./api";
 import type { CaseResult } from "./types";
 import { layoutDag } from "./layout";
 import { GraphPanel } from "./components/GraphPanel";
+import { ParameterBar } from "./components/ParameterBar";
 import "./index.css";
+
+const unique = <T,>(values: T[]): T[] => [...new Set(values)];
 
 export default function App() {
     const [cases, setCases] = useState<CaseResult[]>([]);
+    const [seed, setSeed] = useState(0);
+    const [scenario, setScenario] = useState("baseline");
     useEffect(() => {
         loadPrecomputed().then(setCases);
     }, []);
-    const current: CaseResult | undefined = cases[0];
+
+    const seeds = unique(cases.map((c) => c.case.seed));
+    const scenarios = unique(cases.map((c) => c.case.scenario));
+    const current: CaseResult | undefined = cases.find(
+        (c) => c.case.seed === seed && c.case.scenario === scenario,
+    );
     const layout = useMemo(
         () => current && layoutDag(current.graph.nodes, current.graph.dag),
         [current],
     );
 
-    if (!current || !layout) return <p>Cargando…</p>;
+    if (cases.length === 0) return <p>Cargando…</p>;
 
     return (
         <main>
             <h1>Demo: PC con tests de independencia condicional</h1>
-            <GraphPanel
-                title="DAG verdadero"
-                nodes={current.graph.nodes}
-                edges={current.graph.dag}
-                layout={layout}
+            <ParameterBar
+                minSeed={Math.min(...seeds)}
+                maxSeed={Math.max(...seeds)}
+                scenarios={scenarios}
+                seed={seed}
+                scenario={scenario}
+                onSeedChange={setSeed}
+                onScenarioChange={setScenario}
             />
+            {current && layout ? (
+                <GraphPanel
+                    title="DAG verdadero"
+                    nodes={current.graph.nodes}
+                    edges={current.graph.dag}
+                    layout={layout}
+                />
+            ) : (
+                <p>Caso no disponible.</p>
+            )}
         </main>
     );
 }
