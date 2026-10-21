@@ -8,7 +8,7 @@ from pathlib import Path
 
 from demo.backend.core import SCENARIOS, DemoCase, compute_case
 
-PRECOMPUTED_PATH = Path(__file__).with_name("precomputed.json")
+PRECOMPUTED_PATH = Path(__file__).parents[1] / "frontend" / "public" / "precomputed.json"
 SEEDS = range(10)
 
 
