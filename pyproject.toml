@@ -23,6 +23,7 @@ dependencies = [
 
 [tool.uv]
 package = false
+default-groups = ["dev", "demo"]
 
 [dependency-groups]
 demo = [
@@ -47,6 +48,7 @@ select = ["E", "F", "I", "ANN"]
 python_version = "3.12"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "rpy2.*"

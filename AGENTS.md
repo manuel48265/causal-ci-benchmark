@@ -26,11 +26,12 @@ It's independent from `~/Escritorio/TFG/codigo` (where the literature review liv
   fast-moving corrections instead of stable conventions.
 - Type hints are mandatory: `ruff` (rule `ANN`) and `mypy` (`disallow_untyped_defs`,
   `disallow_incomplete_defs`) are configured in `pyproject.toml` and enforce this.
-  Run `uv run ruff check .` and `uv run mypy src test` before considering Python work done.
+  Run `uv run ruff check .` and `uv run mypy src test demo` before considering Python work done.
   `./scripts/format.sh` runs `ruff check --fix` + `ruff format` to auto-fix
-  imports/style across the whole project. `./scripts/check.sh` verifies
+  imports/style across the whole project, plus prettier on `demo/frontend`
+  when its `node_modules` is installed. `./scripts/check.sh` verifies
   everything without modifying files (ruff check, ruff format --check,
-  mypy, pytest, in that order, stopping at the first failure) — run this
+  mypy, prettier --check, pytest, in that order, stopping at the first failure) — run this
   before considering a change done. Shortcuts: `make check` / `make format`.
 - Pre-push hook: `.githooks/pre-push` runs `check.sh` and blocks the push
   if it fails (commits themselves aren't gated, so WIP commits stay
