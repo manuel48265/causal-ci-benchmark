@@ -16,7 +16,13 @@ import numpy as np
 
 from src.Experiments.DAG_Generation.synthetic_dag_generator import erdos_renyi_topology
 from src.Experiments.Experimental_cases.assemble import GeneratedDataset
-from src.Experiments.Experimental_cases.pc_runner import cpdag_metrics, run_pc
+from src.Experiments.Experimental_cases.pc_runner import (
+    _parse_edge,
+    cpdag_metrics,
+    graph_to_text,
+    run_pc,
+    true_cpdag,
+)
 from src.Experiments.Experimental_cases.run_experiment import TESTS
 from src.Experiments.Experimental_cases.run_pc_experiment import (
     ALPHA,
@@ -32,6 +38,7 @@ N_NODES = 10
 EDGE_PROB = 0.15
 # KCI and CMIknn are left out: a PC run with them takes minutes already at n=500.
 DEMO_TESTS = {spec.name: spec for spec in TESTS if spec.name not in {"kci", "cmiknn"}}
+LINEAR_RULES = {"linear_gaussian", "linear_non_gaussian"}
 
 
 def _hash_seed(text: str) -> int:
@@ -109,6 +116,61 @@ def _true_edges(built: BuiltCase) -> list[str]:
     return [f"v{p}->v{j}" for j, parents in enumerate(built.topology) for p in parents]
 
 
+def _names(built: BuiltCase) -> list[str]:
+    return [f"v{j}" for j in range(len(built.topology))]
+
+
+def _edge_kind(built: BuiltCase, parent: int, child: int) -> str:
+    """Return how ``parent`` acts on ``child``: on its scale, or linearly or not on its mean."""
+    if built.dataset.roles[f"v{child}"][1] == f"v{parent}":
+        return "scale"
+    return "linear" if built.rules[child] in LINEAR_RULES else "nonlinear"
+
+
+def _edge_dicts(edges: list[str]) -> list[dict[str, str]]:
+    return [dict(zip(("source", "mark", "target"), _parse_edge(edge))) for edge in edges]
+
+
+def compare_edges(truth: list[str], estimated: list[str]) -> list[dict[str, str]]:
+    """Classify every edge of an estimated CPDAG against the true CPDAG.
+
+    The comparison is made with the CPDAG and not with the DAG, because PC cannot orient
+    the edges that the CPDAG leaves undirected; an undirected edge there is not an error.
+
+    Parameters
+    ----------
+    truth, estimated : list of str
+        Edges of the true and of the estimated CPDAG, in the format of ``graph_to_text``.
+
+    Returns
+    -------
+    edges : list of dict
+        ``{"source", "target", "mark", "status"}`` for every pair adjacent in either graph.
+        ``status`` is one of {'correct', 'misoriented', 'extra', 'missing'}; a missing edge
+        has the mark of the true CPDAG, every other one that of the estimate.
+    """
+    true_by_pair = {frozenset((e["source"], e["target"])): e for e in _edge_dicts(truth)}
+    compared = []
+    for edge in _edge_dicts(estimated):
+        true_edge = true_by_pair.get(frozenset((edge["source"], edge["target"])))
+        if true_edge is None:
+            status = "extra"
+        elif true_edge["mark"] == edge["mark"] and (
+            edge["mark"] != "->" or true_edge["source"] == edge["source"]
+        ):
+            status = "correct"
+        else:
+            status = "misoriented"
+        compared.append({**edge, "status": status})
+    estimated_pairs = {frozenset((e["source"], e["target"])) for e in compared}
+    compared += [
+        {**edge, "status": "missing"}
+        for pair, edge in true_by_pair.items()
+        if pair not in estimated_pairs
+    ]
+    return compared
+
+
 def graph_json(case: DemoCase) -> dict[str, Any]:
     """Describe the true graph of a case for the frontend.
 
@@ -120,15 +182,25 @@ def graph_json(case: DemoCase) -> dict[str, Any]:
     Returns
     -------
     graph : dict
-        ``nodes``: list of ``{"name", "type", "model"}``. ``edges``: edges of the true DAG
-        as ``a->b``.
+        ``nodes``: list of ``{"name", "type", "model"}``. ``dag``: edges of the true DAG as
+        ``{"source", "target", "kind"}``, with ``kind`` in {'linear', 'nonlinear', 'scale'}:
+        whether the parent acts on the scale of the child, or linearly or not on its mean.
+        ``cpdag``: edges of its CPDAG as ``{"source", "target", "mark"}``, with ``mark`` in
+        {'->', '--'}.
     """
     built = build_case(case)
+    names = _names(built)
     nodes = [
-        {"name": f"v{j}", "type": t.value, "model": rule}
-        for j, (t, rule) in enumerate(zip(built.types, built.rules, strict=True))
+        {"name": name, "type": t.value, "model": rule}
+        for name, t, rule in zip(names, built.types, built.rules, strict=True)
     ]
-    return {"nodes": nodes, "edges": _true_edges(built)}
+    dag = [
+        {"source": f"v{p}", "target": f"v{j}", "kind": _edge_kind(built, p, j)}
+        for j, parents in enumerate(built.topology)
+        for p in parents
+    ]
+    cpdag = graph_to_text(true_cpdag(names, _true_edges(built)).graph, names)
+    return {"nodes": nodes, "dag": dag, "cpdag": _edge_dicts(cpdag.split(";") if cpdag else [])}
 
 
 def run_test(case: DemoCase, test_name: str, n_samples: int) -> dict[str, Any]:
@@ -151,7 +223,8 @@ def run_test(case: DemoCase, test_name: str, n_samples: int) -> dict[str, Any]:
     Returns
     -------
     result : dict
-        ``edges``: edges of the estimated CPDAG, see ``graph_to_text``. ``metrics``: SHD and
+        ``edges``: edges of the estimated CPDAG plus the missing ones, see
+        ``compare_edges``. ``metrics``: SHD and
         F1 against the CPDAG of the true DAG. ``seconds``, ``n_ci_calls`` and ``error``
         (empty when the run succeeded; then ``edges`` and ``metrics`` are empty too).
     """
@@ -172,10 +245,12 @@ def run_test(case: DemoCase, test_name: str, n_samples: int) -> dict[str, Any]:
             "n_ci_calls": 0,
             "error": f"{type(error).__name__}: {error}",
         }
+    names = _names(built)
     edges = run.edges.split(";") if run.edges else []
+    truth = graph_to_text(true_cpdag(names, _true_edges(built)).graph, names)
     return {
-        "edges": edges,
-        "metrics": cpdag_metrics(list(data.columns), _true_edges(built), edges),
+        "edges": compare_edges(truth.split(";") if truth else [], edges),
+        "metrics": cpdag_metrics(names, _true_edges(built), edges),
         "seconds": run.seconds,
         "n_ci_calls": run.n_ci_calls,
         "error": "",
