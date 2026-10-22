@@ -238,11 +238,11 @@ h1 {
     border-radius: 6px;
 }
 
-/* The columns are set by ComparisonGrid; when they do not fit, the grid scrolls sideways.
-   "safe" keeps the start reachable instead of centring it out of view. */
+/* The columns are set by ComparisonGrid; when they do not fit, the grid scrolls sideways
+   from its first panel. It is centred by its own width, not with justify-content, which
+   some Safari versions apply even when the panels overflow and so hide the first one. */
 .comparison-grid {
     display: grid;
-    justify-content: safe center;
     gap: 16px;
     overflow-x: auto;
     /* As wide as its panels, not stretched to the width of the controls above. */
