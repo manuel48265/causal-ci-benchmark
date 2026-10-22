@@ -4,6 +4,10 @@ The precomputed results are always served. Running PC on a new case is enabled o
 environment variable ``DEMO_COMPUTE`` is ``1``, so the public demo does not compute.
 
 Run it with ``uvicorn demo.backend.app:app`` from the root of the repository.
+
+The current demo does not use this API: running PC on a case takes minutes with KCI and
+CMIknn, so the frontend only shows the results of ``precompute``. It is kept for a future
+compute mode.
 """
 
 import json

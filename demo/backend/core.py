@@ -36,8 +36,11 @@ from src.Experiments.Node_Generation.utils import VariableType
 N_SAMPLES = (500, 1000, 5000)
 N_NODES = 10
 EDGE_PROB = 0.15
-# KCI and CMIknn are left out: a PC run with them takes minutes already at n=500.
-DEMO_TESTS = {spec.name: spec for spec in TESTS if spec.name not in {"kci", "cmiknn"}}
+DEMO_TESTS = {spec.name: spec for spec in TESTS}
+# KCI and CMIknn take about a minute per CI call at n=5000, so a PC run with them there
+# takes hours; they are only run up to this sample size.
+SLOW_TESTS = {"kci", "cmiknn"}
+SLOW_TESTS_MAX_N = 1000
 LINEAR_RULES = {"linear_gaussian", "linear_non_gaussian"}
 
 
@@ -260,6 +263,9 @@ def run_test(case: DemoCase, test_name: str, n_samples: int) -> dict[str, Any]:
 def compute_case(case: DemoCase) -> dict[str, Any]:
     """Run every test of the demo on every sample size of a case.
 
+    The tests in ``SLOW_TESTS`` are skipped above ``SLOW_TESTS_MAX_N``, so those entries
+    are absent from ``results``.
+
     Parameters
     ----------
     case : DemoCase
@@ -275,6 +281,11 @@ def compute_case(case: DemoCase) -> dict[str, Any]:
         "case": case.__dict__,
         "graph": graph_json(case),
         "results": {
-            str(n): {name: run_test(case, name, n) for name in DEMO_TESTS} for n in N_SAMPLES
+            str(n): {
+                name: run_test(case, name, n)
+                for name in DEMO_TESTS
+                if name not in SLOW_TESTS or n <= SLOW_TESTS_MAX_N
+            }
+            for n in N_SAMPLES
         },
     }

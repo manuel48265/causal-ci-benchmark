@@ -4,6 +4,7 @@ Run it with ``python -m demo.backend.precompute``; it writes ``PRECOMPUTED_PATH`
 """
 
 import json
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from demo.backend.core import SCENARIOS, DemoCase, compute_case
@@ -14,10 +15,12 @@ SEEDS = range(10)
 
 def main() -> None:
     cases = [DemoCase(seed, scenario) for seed in SEEDS for scenario in SCENARIOS]
-    results = []
-    for i, case in enumerate(cases, 1):
-        print(f"[{i}/{len(cases)}] {case}", flush=True)
-        results.append(compute_case(case))
+    # One case per process; map keeps the results in the order of ``cases``.
+    with ProcessPoolExecutor() as pool:
+        results = []
+        for i, result in enumerate(pool.map(compute_case, cases), 1):
+            print(f"[{i}/{len(cases)}] {result['case']}", flush=True)
+            results.append(result)
     PRECOMPUTED_PATH.write_text(json.dumps(results))
 
 

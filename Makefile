@@ -21,5 +21,6 @@ experiment3:
 	uv run python -m src.Experiments.Experimental_cases.run_real_experiment --workers $(WORKERS)
 
 # Regenerate demo/frontend/public/precomputed.json; rerun after changing the constants in demo/backend/core.py.
+# One BLAS thread per process: the cases already run in parallel, one per core.
 demo-precompute:
-	uv run python -m demo.backend.precompute
+	OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m demo.backend.precompute
