@@ -164,17 +164,28 @@ h1 {
     max-height: calc(100svh - 260px);
 }
 
+/* Wider than the 1200px of the page when the screen allows it, so the panels can take
+   the height of the screen; it overflows the page evenly on both sides. */
 .comparison {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    align-self: center;
+    width: max-content;
+    max-width: calc(100vw - 48px);
 }
 
+/* Stays at the top of the screen while the panels below it are scrolled through. */
 .comparison-controls {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: 16px 24px;
+    padding: 8px 0;
+    background: var(--page-bottom);
 }
 
 .comparison-controls .field {
@@ -227,28 +238,27 @@ h1 {
     border-radius: 6px;
 }
 
+/* The columns are set by ComparisonGrid; when they do not fit, the grid scrolls sideways.
+   "safe" keeps the start reachable instead of centring it out of view. */
 .comparison-grid {
     display: grid;
-    grid-template-columns: repeat(2, max-content);
-    justify-content: center;
+    justify-content: safe center;
     gap: 16px;
+    overflow-x: auto;
+    /* As wide as its panels, not stretched to the width of the controls above. */
+    align-self: center;
+    max-width: 100%;
 }
 
-/* An odd panel left alone in the last row spans both columns and sits in the middle. */
-.comparison-grid .graph-panel:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-    justify-self: center;
+.comparison-grid .graph-panel {
+    grid-column: span 2;
 }
 
-/* Square panels sized so the controls and two rows fit on one screen; the 210px are
-   the controls, the gaps and the caption and padding of both rows of panels, and the
-   400px the page padding, the gap and the padding and metrics column of both panels. */
+/* Square panels sized so the controls and two rows fill the screen; the 198px are the
+   controls, the gaps and the caption and padding of both rows of panels. */
 .comparison-grid svg {
     width: auto;
-    height: min(
-        calc((100svh - 210px) / 2),
-        calc((min(100vw, 1200px) - 400px) / 2)
-    );
+    height: calc((100svh - 198px) / 2);
     max-height: none;
 }
 
@@ -289,6 +299,15 @@ h1 {
 /* On narrow screens the panels become a carousel swiped sideways, one per screen,
    with the next one peeking in so it is clear there are more. */
 @media (max-width: 640px) {
+    .grid-offset {
+        display: none;
+    }
+
+    .comparison {
+        width: auto;
+        align-self: stretch;
+    }
+
     .comparison-grid {
         display: flex;
         overflow-x: auto;

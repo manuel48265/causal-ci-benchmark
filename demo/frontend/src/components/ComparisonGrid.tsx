@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { Fragment, useEffect, useId, useState } from "react";
 import type { Layout } from "../layout";
 import type { CaseResult } from "../types";
 import { GraphPanel } from "./GraphPanel";
@@ -16,7 +16,7 @@ const MODE_LABEL = { tests: "Comparar tests", n: "Comparar n" };
 type Mode = keyof typeof MODE_LABEL;
 
 // Up to this many options are shown as buttons; more go in a search field.
-const MAX_BUTTONS = 4;
+const MAX_BUTTONS = 6;
 const DEBOUNCE_MS = 300;
 
 interface ComparisonGridProps {
@@ -30,7 +30,8 @@ interface ComparisonGridProps {
  *
  * In "compare tests" mode the sample size is fixed and there is one panel per test; in
  * "compare n" mode the test is fixed and there is one panel per sample size. Both
- * fixed values are remembered when switching mode.
+ * fixed values are remembered when switching mode. The panels always fill two rows, with
+ * the top row one panel longer when their count is odd.
  *
  * @param current - Case whose results are drawn.
  * @param layout - Shared node positions from `layoutDag`.
@@ -51,6 +52,8 @@ export function ComparisonGrid({ current, layout }: ComparisonGridProps) {
         const result = current.results[panel.n]?.[panel.test];
         return result ? [{ panel, result }] : [];
     });
+    // Always two rows: the top one gets the extra panel when the count is odd.
+    const columns = Math.ceil(rows.length / 2);
 
     return (
         <section className="comparison">
@@ -82,18 +85,29 @@ export function ComparisonGrid({ current, layout }: ComparisonGridProps) {
                     />
                 )}
             </div>
-            <div className="comparison-grid">
-                {rows.map(({ panel, result }) => (
-                    <GraphPanel
-                        key={`${panel.n}-${panel.test}`}
-                        title={panel.title}
-                        kind="pc"
-                        nodes={current.graph.nodes}
-                        edges={result.edges}
-                        metrics={result.metrics}
-                        error={result.error}
-                        layout={layout}
-                    />
+            {/* Each panel spans two grid columns, so a bottom row one panel shorter starts
+                after a one-column spacer and sits in the middle. */}
+            <div
+                className="comparison-grid"
+                style={{
+                    gridTemplateColumns: `repeat(${2 * columns}, 1fr)`,
+                }}
+            >
+                {rows.map(({ panel, result }, i) => (
+                    <Fragment key={`${panel.n}-${panel.test}`}>
+                        {i === columns && rows.length % 2 === 1 && (
+                            <div className="grid-offset" />
+                        )}
+                        <GraphPanel
+                            title={panel.title}
+                            kind="pc"
+                            nodes={current.graph.nodes}
+                            edges={result.edges}
+                            metrics={result.metrics}
+                            error={result.error}
+                            layout={layout}
+                        />
+                    </Fragment>
                 ))}
             </div>
         </section>
