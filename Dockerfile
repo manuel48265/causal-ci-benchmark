@@ -19,6 +19,15 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/python
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen
 
+# Stage 3: Node and the frontend packages, for the demo and the prettier check
+FROM base AS web-deps
+COPY --from=node:24.22.1-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24.22.1-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+COPY demo/frontend/package.json demo/frontend/package-lock.json demo/frontend/
+RUN npm --prefix demo/frontend ci
+
 # Final image
 FROM base
 ENV UV_PYTHON_INSTALL_DIR=/opt/python
@@ -27,5 +36,8 @@ COPY --from=r-deps /usr/local/lib/R/site-library /usr/local/lib/R/site-library
 COPY --from=py-deps /usr/local/bin/uv /usr/local/bin/uv
 COPY --from=py-deps /opt/python /opt/python
 COPY --from=py-deps /app/.venv /app/.venv
+COPY --from=web-deps /usr/local/bin /usr/local/bin
+COPY --from=web-deps /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=web-deps /app/demo/frontend/node_modules /app/demo/frontend/node_modules
 COPY . .
 CMD ["make", "check"]
