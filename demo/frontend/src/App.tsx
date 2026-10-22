@@ -31,7 +31,6 @@ export default function App() {
 
     return (
         <main>
-            <h1>Demo: PC con tests de independencia condicional</h1>
             <ParameterBar
                 minSeed={Math.min(...seeds)}
                 maxSeed={Math.max(...seeds)}

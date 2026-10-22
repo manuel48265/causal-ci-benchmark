@@ -44,6 +44,11 @@ export function ComparisonGrid({ current, layout }: ComparisonGridProps) {
         mode === "tests"
             ? tests.map((t) => ({ title: TEST_LABEL[t] ?? t, n, test: t }))
             : sizes.map((s) => ({ title: `n = ${s}`, n: s, test }));
+    // Only the panels that have a result, each with it.
+    const rows = panels.flatMap((panel) => {
+        const result = current.results[panel.n]?.[panel.test];
+        return result ? [{ panel, result }] : [];
+    });
 
     return (
         <section className="comparison">
@@ -76,19 +81,18 @@ export function ComparisonGrid({ current, layout }: ComparisonGridProps) {
                 )}
             </div>
             <div className="comparison-grid">
-                {panels.map((p) => {
-                    const result = current.results[p.n]?.[p.test];
-                    return result ? (
-                        <GraphPanel
-                            key={`${p.n}-${p.test}`}
-                            title={p.title}
-                            kind="pc"
-                            nodes={current.graph.nodes}
-                            edges={result.edges}
-                            layout={layout}
-                        />
-                    ) : null;
-                })}
+                {rows.map(({ panel, result }) => (
+                    <GraphPanel
+                        key={`${panel.n}-${panel.test}`}
+                        title={panel.title}
+                        kind="pc"
+                        nodes={current.graph.nodes}
+                        edges={result.edges}
+                        metrics={result.metrics}
+                        error={result.error}
+                        layout={layout}
+                    />
+                ))}
             </div>
         </section>
     );

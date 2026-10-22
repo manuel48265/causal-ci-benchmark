@@ -43,10 +43,6 @@ h1 {
     flex-wrap: wrap;
     justify-content: center;
     gap: 16px 24px;
-    padding: 16px;
-    background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
-    border-radius: 12px;
 }
 
 .parameter-bar label,
@@ -238,15 +234,49 @@ h1 {
 }
 
 /* Square panels sized so the controls and two rows fit on one screen; the 210px are
-   the controls, the gaps and the caption and padding of both rows of panels. */
+   the controls, the gaps and the caption and padding of both rows of panels, and the
+   400px the page padding, the gap and the padding and metrics column of both panels. */
 .comparison-grid svg {
     width: auto;
-    height: min(calc((100svh - 210px) / 2), calc((100vw - 120px) / 2));
+    height: min(
+        calc((100svh - 210px) / 2),
+        calc((min(100vw, 1200px) - 400px) / 2)
+    );
     max-height: none;
 }
 
 .comparison-grid .graph-panel {
     padding: 12px;
+}
+
+/* The drawing and, for PC, the metrics in a column to its right, so adding them does
+   not change the size of the graph. */
+.panel-body {
+    display: flex;
+    gap: 12px;
+}
+
+.metrics-band {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    min-width: 96px;
+    padding-left: 12px;
+    border-left: 1px solid var(--panel-border);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.metrics-band span {
+    display: flex;
+    flex-direction: column;
+}
+
+.metrics-band strong {
+    font-size: 1.1rem;
+    color: var(--text);
 }
 
 /* On narrow screens the panels become a carousel swiped sideways, one per screen,
@@ -267,5 +297,18 @@ h1 {
     .comparison-grid svg {
         width: 100%;
         height: auto;
+    }
+
+    /* No room beside the drawing on a phone: the metrics go in a row under it. */
+    .panel-body {
+        flex-direction: column;
+    }
+
+    .metrics-band {
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 8px 0 0;
+        border-left: none;
+        border-top: 1px solid var(--panel-border);
     }
 }
