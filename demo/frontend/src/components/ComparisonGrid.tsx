@@ -8,6 +8,8 @@ const TEST_LABEL: Record<string, string> = {
     gcm: "GCM",
     pearson_chi2: "χ² de Pearson",
     mixed_ci: "Mixed-CI",
+    kci: "KCI",
+    cmiknn: "CMIknn",
 };
 
 const MODE_LABEL = { tests: "Comparar tests", n: "Comparar n" };

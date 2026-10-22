@@ -56,6 +56,11 @@ export default function App() {
             ) : (
                 <p>Caso no disponible.</p>
             )}
+            <p className="note">
+                Resultados precalculados para {seeds.length} semillas y{" "}
+                {scenarios.length} escenarios. KCI y CMIknn no se ejecutan con n
+                = 5000 por su coste.
+            </p>
         </main>
     );
 }
