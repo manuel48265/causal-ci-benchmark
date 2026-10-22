@@ -154,3 +154,118 @@ h1 {
     stroke: var(--panel-bg);
     stroke-width: 3;
 }
+
+/* The true DAG fills what the first screen leaves below the title and the parameter
+   bar; the comparison starts once the page is scrolled. */
+.main-graph svg {
+    max-height: calc(100svh - 260px);
+}
+
+.comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.comparison-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px 24px;
+}
+
+.comparison-controls .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.segmented {
+    display: flex;
+}
+
+.segmented button {
+    padding: 6px 12px;
+    font: inherit;
+    font-weight: 400;
+    color: var(--text);
+    background: white;
+    border: 1px solid var(--panel-border);
+    cursor: pointer;
+}
+
+.segmented button + button {
+    border-left: none;
+}
+
+.segmented button:first-child {
+    border-radius: 6px 0 0 6px;
+}
+
+.segmented button:last-child {
+    border-radius: 0 6px 6px 0;
+}
+
+.segmented button[aria-pressed="true"] {
+    color: white;
+    background: var(--text-muted);
+    border-color: var(--text-muted);
+}
+
+.comparison-controls input {
+    min-width: 160px;
+    padding: 6px 8px;
+    font: inherit;
+    font-weight: 400;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+}
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    justify-content: center;
+    gap: 16px;
+}
+
+/* An odd panel left alone in the last row spans both columns and sits in the middle. */
+.comparison-grid .graph-panel:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+}
+
+/* Square panels sized so the controls and two rows fit on one screen; the 210px are
+   the controls, the gaps and the caption and padding of both rows of panels. */
+.comparison-grid svg {
+    width: auto;
+    height: min(calc((100svh - 210px) / 2), calc((100vw - 120px) / 2));
+    max-height: none;
+}
+
+.comparison-grid .graph-panel {
+    padding: 12px;
+}
+
+/* On narrow screens the panels become a carousel swiped sideways, one per screen,
+   with the next one peeking in so it is clear there are more. */
+@media (max-width: 640px) {
+    .comparison-grid {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 8px;
+    }
+
+    .comparison-grid .graph-panel {
+        flex: 0 0 85%;
+        scroll-snap-align: center;
+    }
+
+    .comparison-grid svg {
+        width: 100%;
+        height: auto;
+    }
+}

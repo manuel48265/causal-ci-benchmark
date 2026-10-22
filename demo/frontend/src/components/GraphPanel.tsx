@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { NODE_SIZE, relaxLayout, type Layout, type Point } from "../layout";
 import { KIND_DASH, STATUS_COLOR, STATUS_ICON, TYPE_INITIAL } from "../palette";
 import type { DagEdge, GraphNode, PcEdge } from "../types";
@@ -69,6 +69,8 @@ export function GraphPanel(props: GraphPanelProps) {
         nodes.filter((n) => n.type !== "continuous").map((n) => n.name),
     );
     const isSquare = (name: string) => squares.has(name);
+    // Every panel defines its own marker, so its id must be unique in the page.
+    const arrowId = useId();
 
     return (
         <figure className="graph-panel">
@@ -78,7 +80,7 @@ export function GraphPanel(props: GraphPanelProps) {
                     {/* context-stroke paints the arrowhead with the colour of its line;
                         userSpaceOnUse keeps its size independent of the line width. */}
                     <marker
-                        id="arrow"
+                        id={arrowId}
                         viewBox="0 0 10 10"
                         refX="10"
                         refY="5"
@@ -106,7 +108,7 @@ export function GraphPanel(props: GraphPanelProps) {
                                 strokeWidth={1.0}
                                 strokeDasharray={edge.dash}
                                 markerEnd={
-                                    edge.arrow ? "url(#arrow)" : undefined
+                                    edge.arrow ? `url(#${arrowId})` : undefined
                                 }
                             />
                             {edge.icon && (

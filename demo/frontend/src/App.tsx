@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { loadPrecomputed } from "./api";
 import type { CaseResult } from "./types";
 import { layoutDag } from "./layout";
+import { ComparisonGrid } from "./components/ComparisonGrid";
 import { GraphPanel } from "./components/GraphPanel";
 import { ParameterBar } from "./components/ParameterBar";
 import "./index.css";
@@ -42,21 +43,16 @@ export default function App() {
             />
             {current && layout ? (
                 <>
-                    <GraphPanel
-                        title="DAG verdadero"
-                        kind="true"
-                        nodes={current.graph.nodes}
-                        edges={current.graph.dag}
-                        layout={layout}
-                    />
-                    {/* Provisional until ComparisonGrid: one PC result to check the drawing. */}
-                    <GraphPanel
-                        title="PC · fisher_z · n=1000"
-                        kind="pc"
-                        nodes={current.graph.nodes}
-                        edges={current.results["1000"]["fisher_z"].edges}
-                        layout={layout}
-                    />
+                    <div className="main-graph">
+                        <GraphPanel
+                            title="DAG verdadero"
+                            kind="true"
+                            nodes={current.graph.nodes}
+                            edges={current.graph.dag}
+                            layout={layout}
+                        />
+                    </div>
+                    <ComparisonGrid current={current} layout={layout} />
                 </>
             ) : (
                 <p>Caso no disponible.</p>
