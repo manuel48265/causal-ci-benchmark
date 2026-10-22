@@ -1,14 +1,44 @@
-import { NODE_SIZE, type Layout, type Point } from "../layout";
-import { KIND_DASH, TYPE_INITIAL } from "../palette";
-import type { DagEdge, GraphNode } from "../types";
+import { useMemo } from "react";
+import { NODE_SIZE, relaxLayout, type Layout, type Point } from "../layout";
+import { KIND_DASH, STATUS_COLOR, STATUS_ICON, TYPE_INITIAL } from "../palette";
+import type { DagEdge, GraphNode, PcEdge } from "../types";
 
 const RADIUS = NODE_SIZE / 2;
 
-interface GraphPanelProps {
+type GraphPanelProps = {
     title: string;
     nodes: GraphNode[];
-    edges: DagEdge[];
     layout: Layout;
+} & ({ kind: "true"; edges: DagEdge[] } | { kind: "pc"; edges: PcEdge[] });
+
+// What each kind of graph shows on an edge, reduced to what the drawing needs.
+interface EdgeStyle {
+    source: string;
+    target: string;
+    stroke: string;
+    dash: string | undefined;
+    arrow: boolean;
+    icon: string;
+}
+
+function edgeStyles(props: GraphPanelProps): EdgeStyle[] {
+    if (props.kind === "true")
+        return props.edges.map((e) => ({
+            source: e.source,
+            target: e.target,
+            stroke: "#444444",
+            dash: KIND_DASH[e.kind],
+            arrow: true,
+            icon: "",
+        }));
+    return props.edges.map((e) => ({
+        source: e.source,
+        target: e.target,
+        stroke: STATUS_COLOR[e.status],
+        dash: undefined,
+        arrow: e.mark === "->",
+        icon: STATUS_ICON[e.status],
+    }));
 }
 
 /**
@@ -16,14 +46,24 @@ interface GraphPanelProps {
  *
  * Continuous variables are drawn as circles and categorical ones as squares labelled
  * with the initial of their type, so the kind of variable can be read without a legend.
- * The dash pattern of each edge shows the kind of relation.
+ * In the true DAG the dash pattern of each edge shows the kind of relation. In a graph
+ * estimated by PC the colour and an icon at the middle of each edge show its status
+ * against the true CPDAG, and undirected edges are drawn without arrowhead.
  *
  * @param title - Heading shown above the drawing.
  * @param nodes - Nodes of the case.
- * @param edges - Directed edges to draw, from source to target.
- * @param layout - Node positions and drawing size from `layoutDag`.
+ * @param kind - `"true"` for the true DAG, `"pc"` for a graph estimated by PC.
+ * @param edges - Edges to draw, from source to target: `DagEdge` for the true DAG,
+ *     `PcEdge` for PC, whose missing edges are drawn too.
+ * @param layout - Shared node positions from `layoutDag`; each panel moves its nodes a
+ *     little away from its own edges with `relaxLayout`.
  */
-export function GraphPanel({ title, nodes, edges, layout }: GraphPanelProps) {
+export function GraphPanel(props: GraphPanelProps) {
+    const { title, nodes } = props;
+    const layout = useMemo(
+        () => relaxLayout(props.layout, props.edges),
+        [props.layout, props.edges],
+    );
     const at = (name: string) => layout.positions.get(name)!;
     const squares = new Set(
         nodes.filter((n) => n.type !== "continuous").map((n) => n.name),
@@ -51,21 +91,37 @@ export function GraphPanel({ title, nodes, edges, layout }: GraphPanelProps) {
                     </marker>
                 </defs>
 
-                {edges.map((edge) => (
-                    <path
-                        key={`${edge.source}-${edge.target}`}
-                        d={edgePath(
-                            edgePoints(layout, edge.source, edge.target),
-                            isSquare(edge.source),
-                            isSquare(edge.target),
-                        )}
-                        fill="none"
-                        stroke="#444444"
-                        strokeWidth={1.0}
-                        strokeDasharray={KIND_DASH[edge.kind]}
-                        markerEnd="url(#arrow)"
-                    />
-                ))}
+                {edgeStyles(props).map((edge) => {
+                    const points = edgePoints(layout, edge.source, edge.target);
+                    return (
+                        <g key={`${edge.source}-${edge.target}`}>
+                            <path
+                                d={edgePath(
+                                    points,
+                                    isSquare(edge.source),
+                                    isSquare(edge.target),
+                                )}
+                                fill="none"
+                                stroke={edge.stroke}
+                                strokeWidth={1.0}
+                                strokeDasharray={edge.dash}
+                                markerEnd={
+                                    edge.arrow ? "url(#arrow)" : undefined
+                                }
+                            />
+                            {edge.icon && (
+                                <text
+                                    x={(points[0].x + points[1].x) / 2}
+                                    y={(points[0].y + points[1].y) / 2}
+                                    fill={edge.stroke}
+                                    className="edge-icon"
+                                >
+                                    {edge.icon}
+                                </text>
+                            )}
+                        </g>
+                    );
+                })}
 
                 {nodes.map((node) => {
                     const { x, y } = at(node.name);

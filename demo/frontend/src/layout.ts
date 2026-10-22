@@ -24,11 +24,11 @@ export interface Layout {
 type SimNode = SimulationNodeDatum & { name: string; level: number };
 
 /**
- * Place the nodes of a case so that every panel draws them at the same coordinates.
+ * Place the nodes of a case at the shared positions every panel starts from.
  *
  * The layout depends only on the true DAG, never on the graphs estimated by PC, so the
- * nodes stay put when switching test or sample size and the panels can be compared by
- * looking at the edges alone. It is a spring layout: edges pull their ends together and
+ * nodes stay nearly put when switching test or sample size and the panels can be
+ * compared by looking at the edges; `relaxLayout` then moves them a little per panel. It is a spring layout: edges pull their ends together and
  * nodes push each other apart, which keeps the drawing compact. Each connected node is
  * also pulled to the height of its level in the DAG, so parents stay above their
  * children and edges point downwards. Nodes without edges would be pushed far away by
@@ -84,6 +84,11 @@ export function layoutDag(nodes: GraphNode[], dag: DagEdge[]): Layout {
         stretched[i],
     ]);
 
+    return fitToBox(placed);
+}
+
+// Shift the points so the drawing starts at the margin, and size the box around them.
+function fitToBox(placed: [string, Point][]): Layout {
     const xs = placed.map(([, p]) => p.x);
     const ys = placed.map(([, p]) => p.y);
     const left = Math.min(...xs) - NODE_SIZE / 2 - MARGIN;
@@ -96,6 +101,119 @@ export function layoutDag(nodes: GraphNode[], dag: DagEdge[]): Layout {
         width: Math.max(...xs) - left + NODE_SIZE / 2 + MARGIN,
         height: Math.max(...ys) - top + NODE_SIZE / 2 + MARGIN,
     };
+}
+
+type RelaxNode = SimulationNodeDatum & { name: string; home: Point };
+
+// Strength of the inverse-square pushes, in SVG units cubed: a node one NODE_SIZE away
+// from another node or from an edge moves by REPULSION / NODE_SIZE ** 2 per tick.
+const REPULSION = 4000;
+const HOME_STRENGTH = 0.1;
+const CIRCLE_STRENGTH = 0.1;
+
+/**
+ * Move the nodes of a shared layout just enough for one graph to read well.
+ *
+ * The graphs estimated by PC have edges the true DAG does not, which can run over
+ * nodes they do not touch. Starting from the shared layout, each node is pulled back
+ * to its shared position, pushed away from the other nodes and from the edges it is
+ * not an end of, both with a force that falls with the square of the distance, and
+ * kept inside a circle with the area of the shared drawing. The nodes therefore stay
+ * close to where they are in the other panels, so the graphs can still be compared.
+ *
+ * @param base - Shared layout from `layoutDag`, whose positions act as anchors.
+ * @param edges - Edges of the graph that will be drawn, by node name.
+ * @returns The relaxed positions, and the width and height of the drawing, in SVG
+ *     units.
+ */
+export function relaxLayout(
+    base: Layout,
+    edges: { source: string; target: string }[],
+): Layout {
+    const nodes: RelaxNode[] = [...base.positions].map(([name, p]) => ({
+        name,
+        home: p,
+        x: p.x,
+        y: p.y,
+    }));
+    const byName = new Map(nodes.map((n) => [n.name, n]));
+    const segments = edges.map(
+        (e) => [byName.get(e.source)!, byName.get(e.target)!] as const,
+    );
+    const centre = { x: base.width / 2, y: base.height / 2 };
+    const radius = Math.sqrt((base.width * base.height) / Math.PI);
+
+    // Push `node` away from `from` by REPULSION / d², with d at least the node radius so
+    // a node lying on an edge is not thrown out of the drawing.
+    const pushAway = (node: RelaxNode, from: Point, alpha: number) => {
+        let dx = node.x! - from.x;
+        let dy = node.y! - from.y;
+        let d = Math.hypot(dx, dy);
+        if (d === 0) [dx, dy, d] = [1, 0, 1];
+        const push = (alpha * REPULSION) / Math.max(d, NODE_SIZE / 2) ** 2;
+        node.vx! += (dx / d) * push;
+        node.vy! += (dy / d) * push;
+    };
+
+    forceSimulation(nodes)
+        .force(
+            "home-x",
+            forceX<RelaxNode>((n) => n.home.x).strength(HOME_STRENGTH),
+        )
+        .force(
+            "home-y",
+            forceY<RelaxNode>((n) => n.home.y).strength(HOME_STRENGTH),
+        )
+        .force("nodes", (alpha) => {
+            for (const a of nodes)
+                for (const b of nodes)
+                    if (a !== b) pushAway(a, b as Point, alpha);
+        })
+        .force("edges", (alpha) => {
+            for (const [s, t] of segments)
+                for (const n of nodes)
+                    if (n !== s && n !== t)
+                        pushAway(
+                            n,
+                            closestOnSegment(
+                                n as Point,
+                                s as Point,
+                                t as Point,
+                            ),
+                            alpha,
+                        );
+        })
+        .force("circle", (alpha) => {
+            for (const n of nodes) {
+                const dx = n.x! - centre.x;
+                const dy = n.y! - centre.y;
+                const d = Math.hypot(dx, dy);
+                if (d <= radius) continue;
+                const pull = (alpha * CIRCLE_STRENGTH * (d - radius)) / d;
+                n.vx! -= dx * pull;
+                n.vy! -= dy * pull;
+            }
+        })
+        .force("collide", forceCollide(NODE_SIZE))
+        .stop()
+        .tick(300);
+
+    return fitToBox(nodes.map((n) => [n.name, { x: n.x!, y: n.y! }]));
+}
+
+// Point of the segment from `a` to `b` closest to `p`.
+function closestOnSegment(p: Point, a: Point, b: Point): Point {
+    const ex = b.x - a.x;
+    const ey = b.y - a.y;
+    const length2 = ex * ex + ey * ey;
+    const t =
+        length2 === 0
+            ? 0
+            : Math.min(
+                  1,
+                  Math.max(0, ((p.x - a.x) * ex + (p.y - a.y) * ey) / length2),
+              );
+    return { x: a.x + t * ex, y: a.y + t * ey };
 }
 
 const MAX_STRETCH = 3;
