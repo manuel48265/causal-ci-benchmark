@@ -1,0 +1,42 @@
+# Publish the demo on GitHub Pages. It only shows the precomputed results, so the site is
+# static and needs no backend.
+name: Demo
+
+on:
+  push:
+    branches: [main]
+    paths: ["demo/frontend/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: demo/frontend/package-lock.json
+      - run: npm ci
+        working-directory: demo/frontend
+      - run: npm run build
+        working-directory: demo/frontend
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: demo/frontend/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
