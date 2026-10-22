@@ -22,6 +22,7 @@ University of Granada.
 
 - [CI tests](#ci-tests)
 - [Experiments and results](#experiments-and-results)
+- [Demo](#demo)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Repository structure](#repository-structure)
@@ -102,6 +103,29 @@ robustness of each rejection is measured with multi sample splitting.
 Raw results: `experiment_real.csv`, and `experiment_real_ranking.csv` with the statements ranked by
 how many tests reject them robustly.
 
+## Demo
+
+An interactive web page shows what PC estimates with each CI test on small synthetic cases:
+[manuel48265.github.io/causal-ci-benchmark](https://manuel48265.github.io/causal-ci-benchmark/).
+
+Each case is an Erdős–Rényi graph with 10 nodes and edge probability 0.15, with mixed variable
+types, generated as in Experiment 2. On the page you can:
+
+- **Choose the case**: a seed (0–9) and a scenario (linear, nonlinear or heteroscedastic). The
+  three scenarios share the same graph, so only the generating models change.
+- **Read the true DAG**: circles are continuous variables and squares categorical ones, labelled
+  B, O or N (binary, ordinal, nominal); the line style gives the kind of relation (solid linear,
+  dashed nonlinear, dotted scale).
+- **Compare the graphs estimated by PC**, either across tests for a fixed sample size or across
+  sample sizes (500, 1000, 5000) for a fixed test. Each edge is coloured by its status against
+  the true CPDAG (correct, extra, misoriented or missing), and each panel gives the SHD and the
+  skeleton and orientation F1.
+
+The results are precomputed (`make demo-precompute`, about half an hour on 16 cores), so the page is
+static and needs no backend. KCI and CMIknn are not run at n = 5000, where a single CI call takes
+close to a minute. `demo/backend/app.py` has an API that runs PC on a new case, which the page
+does not use yet because of that cost.
+
 ## Installation
 
 Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), and R 4.6 (used through `rpy2` for
@@ -124,6 +148,7 @@ docker build -t causal-ci-benchmark .
 docker run --rm causal-ci-benchmark                         # lint, type check and tests
 docker run --rm -v "$PWD/src/Experiments/Results:/app/src/Experiments/Results" \
     causal-ci-benchmark make experiment1                    # write results to the host
+docker run --rm -p 4173:4173 causal-ci-benchmark make demo  # demo at http://localhost:4173
 ```
 
 `.git` is excluded from the image, so the `code_version` column is only filled when the
@@ -132,11 +157,13 @@ experiments run outside Docker.
 ## Usage
 
 ```bash
-make test           # pytest
-make check          # ruff, ruff format --check, mypy and pytest
-make experiment1    # fundamental structures
-make experiment2    # structure recovery with PC
-make experiment3    # falsification on real data
+make test             # pytest
+make check            # ruff, ruff format --check, mypy and pytest
+make experiment1      # fundamental structures
+make experiment2      # structure recovery with PC
+make experiment3      # falsification on real data
+make demo-precompute  # results shown by the demo
+make demo             # build the demo and serve it at http://localhost:4173
 ```
 
 The experiments use 8 worker processes by default (`make experiment1 WORKERS=1` gives the cleanest
@@ -164,6 +191,9 @@ src/
     ├── Real_Data/            # Sachs, Auto MPG and APM loaders and CSV files
     ├── Experimental_cases/   # experiment runners, PC runner, dagitty bridge, multi sample splitting
     └── Results/              # CSV results of the three experiments
+demo/
+├── backend/                  # demo cases and precomputation of their results
+└── frontend/                 # React page (Vite) that shows them
 test/                         # pytest suite, including parity tests against the reference packages
 docs/                         # README figure (pipeline.html is its source)
 ```
