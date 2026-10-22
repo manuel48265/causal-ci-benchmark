@@ -28,8 +28,9 @@ export interface PcEdge extends CpdagEdge {
 
 export interface Metrics {
     shd: number;
-    skeleton_f1: number;
-    orientation_f1: number;
+    // null when neither graph has an edge (skeleton) or an arrowhead (orientation) to score.
+    skeleton_f1: number | null;
+    orientation_f1: number | null;
 }
 
 export interface TestResult {

@@ -186,15 +186,13 @@ export function GraphPanel(props: GraphPanelProps) {
                                 <span>
                                     F1 esqueleto
                                     <strong>
-                                        {props.metrics.skeleton_f1.toFixed(2)}
+                                        {formatF1(props.metrics.skeleton_f1)}
                                     </strong>
                                 </span>
                                 <span>
                                     F1 orientación
                                     <strong>
-                                        {props.metrics.orientation_f1.toFixed(
-                                            2,
-                                        )}
+                                        {formatF1(props.metrics.orientation_f1)}
                                     </strong>
                                 </span>
                             </>
@@ -204,6 +202,11 @@ export function GraphPanel(props: GraphPanelProps) {
             </div>
         </figure>
     );
+}
+
+// An F1 with two decimals, or a dash when there was nothing to score.
+function formatF1(f1: number | null): string {
+    return f1 === null ? "—" : f1.toFixed(2);
 }
 
 // Centres of both nodes; the layout keeps edges straight.
