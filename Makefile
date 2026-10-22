@@ -1,4 +1,4 @@
-.PHONY: check format test experiment1 experiment2 experiment3 demo-precompute
+.PHONY: check format test experiment1 experiment2 experiment3 demo-precompute demo
 
 check:
 	./scripts/check.sh
@@ -24,3 +24,8 @@ experiment3:
 # One BLAS thread per process: the cases already run in parallel, one per core.
 demo-precompute:
 	OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m demo.backend.precompute
+
+# Build the demo and serve it on port 4173, as it is published: only the precomputed results.
+demo:
+	npm --prefix demo/frontend run build
+	npm --prefix demo/frontend run preview -- --port 4173
