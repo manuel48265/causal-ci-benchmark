@@ -143,3 +143,14 @@ h1 {
     font-size: 8px;
     font-weight: bold;
 }
+
+.edge-icon {
+    text-anchor: middle;
+    dominant-baseline: central;
+    font-size: 11px;
+    font-weight: bold;
+    /* Halo in the panel colour so the icon reads over the line it sits on. */
+    paint-order: stroke;
+    stroke: var(--panel-bg);
+    stroke-width: 3;
+}

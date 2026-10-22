@@ -41,12 +41,23 @@ export default function App() {
                 onScenarioChange={setScenario}
             />
             {current && layout ? (
-                <GraphPanel
-                    title="DAG verdadero"
-                    nodes={current.graph.nodes}
-                    edges={current.graph.dag}
-                    layout={layout}
-                />
+                <>
+                    <GraphPanel
+                        title="DAG verdadero"
+                        kind="true"
+                        nodes={current.graph.nodes}
+                        edges={current.graph.dag}
+                        layout={layout}
+                    />
+                    {/* Provisional until ComparisonGrid: one PC result to check the drawing. */}
+                    <GraphPanel
+                        title="PC · fisher_z · n=1000"
+                        kind="pc"
+                        nodes={current.graph.nodes}
+                        edges={current.results["1000"]["fisher_z"].edges}
+                        layout={layout}
+                    />
+                </>
             ) : (
                 <p>Caso no disponible.</p>
             )}
