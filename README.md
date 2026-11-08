@@ -75,13 +75,13 @@ Raw results: `experiment_confusion.csv.xz` (720,000 rows, one per dataset and te
 ### Experiment 2: structure recovery with PC
 
 PC-stable is run with each CI test on graphs with the topology of a random Erdős–Rényi graph
-(15 nodes, edge probability 0.2) or of the ASIA and SACHS bnlearn networks, under three scenarios (baseline,
+(15 nodes, edge probability 0.2) or of the ASIA and SACHS bnlearn networks, under three scenarios (linear,
 heteroscedastic, nonlinear), with mixed variable types and model families, 500 or 1000 samples and
 50 repetitions: **900 datasets**. The estimated CPDAG is stored next to the true graph.
 
 Mean skeleton F1 (adjacencies of the estimated CPDAG against those of the true DAG):
 
-| CI test | Baseline | Heteroscedastic | Nonlinear |
+| CI test | Linear | Heteroscedastic | Nonlinear |
 |---|---:|---:|---:|
 | KCI | 0.897 | **0.912** | **0.923** |
 | Mixed CI | **0.923** | 0.847 | 0.881 |
