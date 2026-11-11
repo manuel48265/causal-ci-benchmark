@@ -129,18 +129,20 @@ does not use yet because of that cost.
 ## Installation
 
 Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), and R 4.6 (used through `rpy2` for
-the parity tests against R packages and for dagitty in experiment 3).
+the parity tests against R packages and for dagitty in experiment 3). The demo also needs Node 24
+with npm.
 
 ```bash
 git clone https://github.com/manuel48265/causal-ci-benchmark.git
 cd causal-ci-benchmark
 uv sync                                                     # Python dependencies (uv.lock)
 Rscript -e 'install.packages("renv"); renv::restore(lockfile = "renv.lock", library = .libPaths()[1], prompt = FALSE)'   # R packages
+npm ci --prefix demo/frontend                               # TypeScript dependencies of the demo (package-lock.json)
 ```
 
 ### Docker
 
-The image installs Python and R dependencies from the lock files, so results can be reproduced
+The image installs Python, R and Node dependencies from the lock files, so results can be reproduced
 without a local setup. By default it runs the full check suite:
 
 ```bash
